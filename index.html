@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>SIPANDU Irigasi — PUPR</title>
+  <meta name="description" content="Prototipe PWA pelaporan lapangan irigasi — PPA, Pekarya, Staf Pengamat. Kementerian PUPR.">
+  <meta name="theme-color" content="#0B3B78">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SIPANDU">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- ============ LOGIN ============ -->
+  <div id="screen-login" class="screen login">
+    <div class="login-hero">
+      <div class="logo-badge"></div>
+      <h1>SIPANDU</h1>
+      <p class="login-sub">Sistem Informasi Pelaporan &amp; Pemantauan Digital Irigasi</p>
+      <p class="login-org">Prototipe PWA — Kementerian Pekerjaan Umum &amp; Perumahan Rakyat</p>
+    </div>
+    <div class="login-card">
+      <div class="login-label">Masuk sebagai</div>
+      <div class="role-cards">
+        <button class="role-card" data-role="ppa">
+          <span class="rc-ic" id="rc-ppa"></span>
+          <span class="rc-main"><span class="rc-t">PPA</span><span class="rc-s">Operator Pintu Air — Agus Setiawan</span></span>
+        </button>
+        <button class="role-card" data-role="pekarya">
+          <span class="rc-ic" id="rc-pek"></span>
+          <span class="rc-main"><span class="rc-t">Pekarya</span><span class="rc-s">Penjaga Saluran — Budi Hartono</span></span>
+        </button>
+        <button class="role-card" data-role="pengamat">
+          <span class="rc-ic" id="rc-spg"></span>
+          <span class="rc-main"><span class="rc-t">Staf Pengamat</span><span class="rc-s">Pengawas 1 D.I. — Siti Rahmawati</span></span>
+        </button>
+      </div>
+      <button id="btn-login" class="btn btn-primary btn-block" disabled>Masuk</button>
+      <p class="login-note">Kamera, GPS &amp; kompas memerlukan HTTPS — saat di-hosting di GitHub Pages semuanya aktif. Data demo tersimpan di perangkat.</p>
+    </div>
+  </div>
+
+  <!-- ============ APP SHELL ============ -->
+  <div id="screen-app" class="screen hidden">
+    <aside id="sidebar">
+      <div id="side-brand"></div>
+      <nav id="side-nav"></nav>
+      <div class="side-foot">
+        <div class="side-status"><span class="dot-on"></span>Terhubung — siap sinkron</div>
+        <div id="side-user"></div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <section id="page-home" class="page"></section>
+      <section id="page-laporan" class="page"></section>
+      <section id="page-riwayat" class="page"></section>
+      <section id="page-dash" class="page"></section>
+      <section id="page-peta" class="page page-peta"></section>
+      <section id="page-profil" class="page"></section>
+    </main>
+
+    <nav id="tabbar"></nav>
+  </div>
+
+  <!-- ============ KAMERA FULLSCREEN ============ -->
+  <div id="camera" class="camera hidden">
+    <video id="cam-video" autoplay playsinline muted></video>
+
+    <!-- Watermark langsung di layar (ala Timemark) -->
+    <div class="cam-wm">
+      <div class="wm-top">
+        <div class="wm-chip wm-brand">SIPANDU • KEMENTERIAN PUPR</div>
+        <div class="wm-chip" id="wm-compass">245° Barat Daya</div>
+      </div>
+      <div class="wm-bottom">
+        <div class="wm-left">
+          <div class="wm-coords" id="wm-coords">GPS: menunggu sinyal…</div>
+          <div class="wm-alt" id="wm-alt">Alt — m dpl</div>
+          <div class="wm-addr" id="wm-addr">Menunggu lokasi…</div>
+        </div>
+        <div class="wm-right">
+          <div class="wm-time" id="wm-time">--.--.-- WIB</div>
+          <div class="wm-date" id="wm-date">—</div>
+        </div>
+      </div>
+      <div class="wm-step" id="wm-step">LAPORAN 0%</div>
+    </div>
+
+    <div class="cam-topbar">
+      <button class="cam-btn" id="cam-close" aria-label="Tutup kamera"></button>
+      <div class="cam-title" id="cam-title">Kamera</div>
+      <div class="cam-topbtns">
+        <button class="cam-btn" id="cam-orient" aria-label="Kunci orientasi"></button>
+        <button class="cam-btn" id="cam-flash" aria-label="Lampu kilat"></button>
+        <button class="cam-btn" id="cam-switch" aria-label="Ganti kamera"></button>
+      </div>
+    </div>
+
+    <div class="cam-count hidden" id="cam-count">3</div>
+
+    <div class="cam-bottombar">
+      <div class="cd-chips" id="cd-chips">
+        <button data-cd="0" class="on">Off</button>
+        <button data-cd="3">3s</button>
+        <button data-cd="5">5s</button>
+        <button data-cd="10">10s</button>
+      </div>
+      <button class="shutter" id="cam-shutter" aria-label="Ambil foto"><span></span></button>
+      <div class="cam-hint" id="cam-hint">Foto tersimpan ke laporan</div>
+    </div>
+
+    <div class="cam-confirm" id="cam-confirm">
+      <img id="cam-shot" alt="Pratinjau foto">
+      <div class="cam-confirm-bar">
+        <button class="btn btn-ghost" id="cam-retake">Ulangi</button>
+        <button class="btn btn-primary" id="cam-use">Gunakan Foto</button>
+      </div>
+    </div>
+
+    <div class="cam-error hidden" id="cam-error">
+      <div class="ce-box">
+        <h3>Kamera tidak dapat diakses</h3>
+        <p id="cam-err-detail"></p>
+        <button class="btn btn-primary" id="cam-err-close">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BOTTOM SHEET + TOAST ============ -->
+  <div id="sheet-bg" class="sheet-bg hidden"></div>
+  <div id="sheet" class="sheet hidden">
+    <div class="grab"></div>
+    <div class="sheet-title"></div>
+    <div class="sheet-body"></div>
+    <div class="sheet-actions"></div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
